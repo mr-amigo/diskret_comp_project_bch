@@ -15,9 +15,9 @@ def cmd_encode(args):
         print(f"Error: message length must be {bch.k}, got {len(message)}")
         return 1
     codeword = bch.encode(message)
-    print(f"Code:      BCH(n={bch.n}, k={bch.k}, t={bch.t})")
-    print(f"Message:   {''.join(map(str, message))}")
-    print(f"Codeword:  {''.join(map(str, codeword))}")
+    print(f"Code:     BCH(n={bch.n}, k={bch.k}, t={bch.t})")
+    print(f"Message:  {''.join(map(str, message))}")
+    print(f"Codeword: {''.join(map(str, codeword))}")
     return 0
 
 
@@ -28,11 +28,11 @@ def cmd_decode(args):
         print(f"Error: received length must be {bch.n}, got {len(received)}")
         return 1
     result = bch.decode(received)
-    print(f"Code:      BCH(n={bch.n}, k={bch.k}, t={bch.t})")
-    print(f"Received:  {''.join(map(str, received))}")
+    print(f"Code:     BCH(n={bch.n}, k={bch.k}, t={bch.t})")
+    print(f"Received: {''.join(map(str, received))}")
     if result.success:
-        print(f"Decoded:   {''.join(map(str, result.decoded_codeword))}")
-        print(f"Message:   {''.join(map(str, result.decoded_message))}")
+        print(f"Decoded:  {''.join(map(str, result.decoded_codeword))}")
+        print(f"Message:  {''.join(map(str, result.decoded_message))}")
         if result.error_positions:
             print(f"Corrected {len(result.error_positions)} error(s) at positions {result.error_positions}")
         else:
@@ -51,22 +51,22 @@ def cmd_simulate(args):
     received, error_positions = channel.transmit(codeword)
     result = bch.decode(received)
 
-    print(f"Code:        BCH(n={bch.n}, k={bch.k}, t={bch.t})")
-    print(f"BER:         {args.ber}")
+    print(f"Code:     BCH(n={bch.n}, k={bch.k}, t={bch.t})")
+    print(f"BER:      {args.ber}")
     print()
-    print(f"Message:     {''.join(map(str, message))}")
-    print(f"Codeword:    {''.join(map(str, codeword))}")
-    print(f"Received:    {''.join(map(str, received))}")
-    print(f"Errors:      {len(error_positions)} at positions {error_positions}")
+    print(f"Message:  {''.join(map(str, message))}")
+    print(f"Codeword: {''.join(map(str, codeword))}")
+    print(f"Received: {''.join(map(str, received))}")
+    print(f"Errors:   {len(error_positions)} at positions {error_positions}")
     print()
     if result.success:
-        print(f"Decoded:     {''.join(map(str, result.decoded_codeword))}")
+        print(f"Decoded:  {''.join(map(str, result.decoded_codeword))}")
         if result.decoded_message == message:
-            print("Result:      SUCCESS — original message recovered")
+            print("Result:   SUCCESS — original message recovered")
         else:
-            print("Result:      MISCORRECTION — wrong message decoded")
+            print("Result:   MISCORRECTION — wrong message decoded")
     else:
-        print("Result:      FAILED — too many errors")
+        print("Result:   FAILED — too many errors")
     return 0
 
 
@@ -93,7 +93,7 @@ def cmd_plot(args):
         print(f"  BER={ber:.3f}: success rate = {rate:.2%}")
 
     plt.figure(figsize=(8, 5))
-    plt.plot(bers, success_rates, marker='o')
+    plt.plot(bers, success_rates, marker="o")
     plt.xlabel("Bit Error Rate (BER)")
     plt.ylabel("Success rate")
     plt.title(f"BCH(n={bch.n}, k={bch.k}, t={bch.t}) — success rate vs BER")

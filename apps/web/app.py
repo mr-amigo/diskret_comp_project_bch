@@ -160,7 +160,7 @@ with tab3:
             progress.progress((idx + 1) / len(bers))
 
         fig, ax = plt.subplots(figsize=(8, 5))
-        ax.plot(bers, rates, marker='o')
+        ax.plot(bers, rates, marker="o")
         ax.set_xlabel("Bit Error Rate (BER)")
         ax.set_ylabel("Success rate")
         ax.set_title(f"BCH(n={code.n}, k={code.k}, t={code.t})")

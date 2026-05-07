@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from galois import GaloisField
+from .galois import GaloisField
 from .polynomial import Polynomial, lcm_poly_gf2
 
 
