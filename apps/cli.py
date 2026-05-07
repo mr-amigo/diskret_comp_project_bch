@@ -6,6 +6,7 @@ import sys
 
 from core.bch import BCHCode
 from core.channel import BinarySymmetricChannel
+from core.text_codec import encode_text, decode_text, bits_to_text
 
 
 def cmd_encode(args):
@@ -103,6 +104,44 @@ def cmd_plot(args):
     return 0
 
 
+def cmd_simulate_text(args):
+    bch = BCHCode(m=args.m, t=args.t)
+    text = args.text
+
+    codewords, original_length = encode_text(text, bch)
+    all_bits = [b for cw in codewords for b in cw]
+
+    channel = BinarySymmetricChannel(p=args.ber, seed=args.seed)
+    received_bits, error_positions = channel.transmit(all_bits)
+
+    corrupted_bits = []
+    for i in range(0, len(received_bits), bch.n):
+        corrupted_bits.extend(received_bits[i:i + bch.k])
+    corrupted_bits = corrupted_bits[:original_length]
+    corrupted_text = bits_to_text(corrupted_bits)
+
+    received_codewords = [received_bits[i:i + bch.n] for i in range(0, len(received_bits), bch.n)]
+    decoded_text, n_ok, n_fail = decode_text(received_codewords, bch, original_length)
+
+    print(f"Code:                BCH(n={bch.n}, k={bch.k}, t={bch.t})")
+    print(f"BER:                 {args.ber}")
+    print(f"Blocks:              {len(codewords)} ({original_length} message bits)")
+    print()
+    print(f"Original text:       {text!r}")
+    print(f"After channel:       {corrupted_text!r}    (no decoding)")
+    print(f"After BCH decode:    {decoded_text!r}")
+    print()
+    print(f"Errors injected:     {len(error_positions)}")
+    print(f"Blocks decoded:      {n_ok} success, {n_fail} failed")
+    if decoded_text == text:
+        print("Result:              SUCCESS — text fully recovered")
+    elif n_fail == 0:
+        print("Result:              MISCORRECTION — decoder converged but text differs")
+    else:
+        print(f"Result:              PARTIAL — {n_fail} block(s) had > t errors")
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(description="BCH error-correction simulator")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -135,6 +174,14 @@ def main():
     p_plot.add_argument("--seed", type=int, default=0)
     p_plot.add_argument("--output", default="success_vs_ber.png")
     p_plot.set_defaults(func=cmd_plot)
+
+    p_text = sub.add_parser("simulate-text", help="Send text through the channel and decode")
+    p_text.add_argument("--m", type=int, required=True)
+    p_text.add_argument("--t", type=int, required=True)
+    p_text.add_argument("--text", required=True, help="Text to encode and transmit")
+    p_text.add_argument("--ber", type=float, default=0.02)
+    p_text.add_argument("--seed", type=int, default=42)
+    p_text.set_defaults(func=cmd_simulate_text)
 
     args = parser.parse_args()
     return args.func(args)
