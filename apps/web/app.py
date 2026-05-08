@@ -13,11 +13,11 @@ import matplotlib.pyplot as plt
 
 from core.bch import BCHCode
 from core.channel import BinarySymmetricChannel
+from core.text_codec import encode_text, decode_text, bits_to_text
 
 
 st.set_page_config(page_title="BCH Simulator", layout="wide")
 st.title("BCH Error-Correction Simulator")
-st.caption("Курсовий проєкт з дискретної математики, УКУ")
 
 st.sidebar.header("Code parameters")
 m = st.sidebar.slider("m (field size 2^m)", 3, 8, 5)
@@ -33,7 +33,7 @@ st.sidebar.write(f"**n** = {code.n}")
 st.sidebar.write(f"**k** = {code.k}")
 st.sidebar.write(f"**rate** = {code.code_rate:.3f}")
 
-tab1, tab2, tab3 = st.tabs(["Encoder/Decoder", "Channel Simulator", "Performance"])
+tab1, tab2, tab3, tab4 = st.tabs(["Encoder/Decoder", "Channel Simulator", "Performance", "Text Transmission"])
 
 
 with tab1:
@@ -167,3 +167,60 @@ with tab3:
         ax.grid(True)
         ax.set_ylim(0, 1.05)
         st.pyplot(fig)
+
+
+with tab4:
+    st.header("Send text through a noisy channel")
+    st.write("Type a message — see how it gets corrupted in the channel and "
+             "whether BCH decoding can recover it.")
+
+    text_input = st.text_input("Message:", value="Hello, BCH!", max_chars=200)
+    col1, col2 = st.columns(2)
+    with col1:
+        ber_text = st.slider("Channel BER", 0.0, 0.3, 0.03, 0.005, key="text_ber")
+    with col2:
+        seed_text = st.number_input("Seed", value=42, step=1, key="text_seed")
+
+    if st.button("Transmit"):
+        if not text_input:
+            st.warning("Please enter some text")
+        else:
+            codewords, original_length = encode_text(text_input, code)
+            all_bits = [b for cw in codewords for b in cw]
+
+            ch = BinarySymmetricChannel(p=ber_text, seed=int(seed_text))
+            received_bits, error_positions = ch.transmit(all_bits)
+
+            corrupted_bits = []
+            for i in range(0, len(received_bits), code.n):
+                corrupted_bits.extend(received_bits[i:i + code.k])
+            corrupted_bits = corrupted_bits[:original_length]
+            corrupted_text = bits_to_text(corrupted_bits)
+
+            received_codewords = [received_bits[i:i + code.n]
+                                   for i in range(0, len(received_bits), code.n)]
+            decoded_text, n_ok, n_fail = decode_text(received_codewords, code, original_length)
+
+            colA, colB, colC = st.columns(3)
+            with colA:
+                st.subheader("Original")
+                st.code(text_input, language=None)
+            with colB:
+                st.subheader("After channel")
+                st.code(corrupted_text, language=None)
+                st.caption("(no decoding)")
+            with colC:
+                st.subheader("After BCH decoding")
+                st.code(decoded_text, language=None)
+
+            colX, colY, colZ = st.columns(3)
+            colX.metric("Bits transmitted", f"{len(all_bits)} ({len(codewords)} blocks)")
+            colY.metric("Errors injected", len(error_positions))
+            colZ.metric("Blocks recovered", f"{n_ok} / {n_ok + n_fail}")
+
+            if decoded_text == text_input:
+                st.success("Text fully recovered.")
+            elif n_fail == 0:
+                st.warning("Decoder converged on every block but the text differs (miscorrection).")
+            else:
+                st.error(f"{n_fail} block(s) had more than t errors and could not be corrected.")
